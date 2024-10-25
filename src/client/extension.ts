@@ -44,7 +44,7 @@ export function activate(context: vscode.ExtensionContext) {
     console.log('Cliente LSP está pronto.');
     
     // Manipulador da solicitação personalizada 'custom/openFile'
-    client.onRequest('custom/openFile', (params) => {
+    client.onRequest('custom/openFile', (params: { uri: string; }) => {
 
       console.log('Requisição custom/openFile recebida:', params);
       const uri = vscode.Uri.parse(params.uri);
@@ -53,11 +53,7 @@ export function activate(context: vscode.ExtensionContext) {
       const normalizedPath = uri.fsPath.endsWith('\\') ? uri.fsPath.slice(0, -1) : uri.fsPath;
       const normalizedUri = vscode.Uri.file(normalizedPath);
 
-      console.log('1 '+uri);
-      console.log('2 '+normalizedPath);
-      console.log('3 '+normalizedUri);
-
-      vscode.workspace.openTextDocument('d:/projetos/imc/target/jaguar2.csv').then((document) => {
+      vscode.workspace.openTextDocument(params.uri).then((document) => {
         vscode.window.showTextDocument(document);
       });
     });

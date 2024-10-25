@@ -42,7 +42,7 @@ function notifyClientToOpenFile(filePath: string): void {
   // Verifica se o path é um arquivo
   if (fs.lstatSync(filePath).isFile() && fs.existsSync(filePath)) {
     const uriPath = filePath.endsWith('\\') ? filePath.slice(0, -1) : filePath; // Remove a barra se existir
-    connection.sendRequest('custom/openFile', { uri: `file://${uriPath}` });
+    connection.sendRequest('custom/openFile', { uri: filePath });
   } else {
     connection.console.error(`O caminho não é um arquivo: ${filePath}`);
   }
@@ -53,19 +53,19 @@ function notifyClientToOpenFile(filePath: string): void {
 function watchDirectory(filePath: string): void {
   const watcher = chokidar.watch(filePath, { persistent: true });
 
-  watcher.on('error', (error) => {
+  watcher.on('error', (error: any) => {
     connection.console.error(`Erro no watcher: ${error}`);
   });
 
   connection.console.log(`Monitorando o arquivo: ${filePath}`);
   
-  watcher.on('add', (filePath) => {
+  watcher.on('add', (filePath: string) => {
     connection.console.log(`Arquivo criado: ${filePath}`);
     //processFile(filePath);
     notifyClientToOpenFile(filePath); 
   });
   
-  watcher.on('change', (filePath) => {
+  watcher.on('change', (filePath: string) => {
     connection.console.log(`Arquivo modificado: ${filePath}`);
     //processFile(filePath);
     notifyClientToOpenFile(filePath); // Notifica o cliente para abrir o arquivo
