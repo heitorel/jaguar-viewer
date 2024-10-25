@@ -24,31 +24,29 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deactivate = exports.activate = void 0;
+const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
-const vscode_1 = require("vscode");
 const node_1 = require("vscode-languageclient/node");
 let client;
 function activate(context) {
-    // Local do servidor LSP
-    const serverModule = context.asAbsolutePath(path.join('server', 'out', 'server.js'));
-    // Configurações para iniciar o servidor no processo Node.js
+    // Configuração do servidor
     const serverOptions = {
-        run: { module: serverModule, transport: node_1.TransportKind.ipc },
-        debug: { module: serverModule, transport: node_1.TransportKind.ipc }
+        run: { module: context.asAbsolutePath(path.join('server', 'out', 'server.js')), transport: node_1.TransportKind.ipc },
+        debug: { module: context.asAbsolutePath(path.join('server', 'out', 'server.js')), transport: node_1.TransportKind.ipc }
     };
-    // Opções do cliente LSP
+    // Configuração do cliente
     const clientOptions = {
-        // Registra o servidor para documentos de texto abertos
         documentSelector: [{ scheme: 'file', language: 'plaintext' }],
-        synchronize: {
-            // Notifica o servidor de mudanças no diretório
-            fileEvents: vscode_1.workspace.createFileSystemWatcher('**/*')
-        }
     };
-    // Cria o cliente LSP e inicia o cliente.
-    client = new node_1.LanguageClient('fileWatcherLSP', 'File Watcher LSP', serverOptions, clientOptions);
-    // Inicia o cliente.
+    // Criar o cliente LSP e iniciar o servidor
+    client = new node_1.LanguageClient('languageServerExample', 'Language Server Example', serverOptions, clientOptions);
+    // Inicie o cliente LSP
     client.start();
+    // Após o cliente estar pronto, configure o handler para a requisição customizada
+    client.onNotification('custom/openFile', async (params) => {
+        const document = await vscode.workspace.openTextDocument(vscode.Uri.parse(params.uri));
+        vscode.window.showTextDocument(document);
+    });
 }
 exports.activate = activate;
 function deactivate() {

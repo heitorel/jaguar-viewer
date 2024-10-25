@@ -14,6 +14,7 @@ const connection = (0, node_1.createConnection)(node_1.ProposedFeatures.all);
 const documents = new node_1.TextDocuments(vscode_languageserver_textdocument_1.TextDocument);
 // Inicialize o servidor LSP
 connection.onInitialize((params) => {
+    console.log("passou aqui");
     return {
         capabilities: {
             textDocumentSync: node_1.TextDocumentSyncKind.Incremental,
@@ -36,11 +37,14 @@ function processFile(filePath) {
         connection.console.log('Conteúdo:' + data);
     });
 }
+// Notificar o cliente para abrir o arquivo
+function notifyClientToOpenFile(filePath) {
+    connection.sendRequest('custom/openFile', { uri: `file://${filePath}` });
+}
 // Monitora o diretório passado como argumento
 function watchDirectory(directory) {
     const watcher = chokidar_1.default.watch(directory, {
-        persistent: true,
-        ignoreInitial: true,
+        persistent: true
     });
     watcher.on('change', (filePath) => {
         connection.console.log(`Arquivo modificado: ${filePath}`);
@@ -50,10 +54,20 @@ function watchDirectory(directory) {
         connection.console.error(`Erro no watcher: ${error}`);
     });
     connection.console.log(`Monitorando o diretório: ${directory}`);
+    watcher.on('add', (filePath) => {
+        connection.console.log(`Arquivo criado: ${filePath}`);
+        processFile(filePath);
+        notifyClientToOpenFile(filePath); // Notifica o cliente para abrir o arquivo
+    });
+    watcher.on('change', (filePath) => {
+        connection.console.log(`Arquivo modificado: ${filePath}`);
+        processFile(filePath);
+        notifyClientToOpenFile(filePath); // Notifica o cliente para abrir o arquivo
+    });
 }
 // Escute por mensagens de inicialização
 connection.onInitialized(() => {
-    const directoryToWatch = path_1.default.resolve(__dirname, '../path_to_your_directory');
+    const directoryToWatch = path_1.default.resolve(__dirname, 'D:/Projetos/IMC/target');
     watchDirectory(directoryToWatch);
 });
 // Escute eventos do LSP

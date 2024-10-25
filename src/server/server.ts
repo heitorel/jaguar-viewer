@@ -1,20 +1,18 @@
-import { createConnection, TextDocuments, InitializeParams, Connection, ProposedFeatures, TextDocumentSyncKind } from 'vscode-languageserver/node';
+import { createConnection, TextDocuments, InitializeParams, ProposedFeatures, TextDocumentSyncKind } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import chokidar from 'chokidar';
 import fs from 'fs';
 import path from 'path';
 
-
-
 // Crie a conexão do LSP
 const connection = createConnection(ProposedFeatures.all);
-
 
 // Gerencia os documentos abertos pelo cliente
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 // Inicialize o servidor LSP
 connection.onInitialize((params: InitializeParams) => {
+  connection.console.log("Servidor LSP inicializado");
   return {
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,
@@ -35,34 +33,54 @@ function processFile(filePath: string): void {
       return;
     }
     connection.console.log(`Arquivo atualizado: ${filePath}`);
-    connection.console.log('Conteúdo:' + data);
+    connection.console.log('Conteúdo: ' + data);
   });
 }
 
-// Monitora o diretório passado como argumento
-function watchDirectory(directory: string): void {
-  const watcher = chokidar.watch(directory, {
-    persistent: true,
-    ignoreInitial: true,
-  });
+// Notificar o cliente para abrir o arquivo
+function notifyClientToOpenFile(filePath: string): void {
+  // Verifica se o path é um arquivo
+  if (fs.lstatSync(filePath).isFile() && fs.existsSync(filePath)) {
+    const uriPath = filePath.endsWith('\\') ? filePath.slice(0, -1) : filePath; // Remove a barra se existir
+    connection.sendRequest('custom/openFile', { uri: `file://${uriPath}` });
+  } else {
+    connection.console.error(`O caminho não é um arquivo: ${filePath}`);
+  }
+}
 
-  watcher.on('change', (filePath) => {
-    connection.console.log(`Arquivo modificado: ${filePath}`);
-    processFile(filePath);
-  });
+
+// Monitora o diretório passado como argumento
+function watchDirectory(filePath: string): void {
+  const watcher = chokidar.watch(filePath, { persistent: true });
 
   watcher.on('error', (error) => {
     connection.console.error(`Erro no watcher: ${error}`);
   });
 
-  connection.console.log(`Monitorando o diretório: ${directory}`);
+  connection.console.log(`Monitorando o arquivo: ${filePath}`);
+  
+  watcher.on('add', (filePath) => {
+    connection.console.log(`Arquivo criado: ${filePath}`);
+    //processFile(filePath);
+    notifyClientToOpenFile(filePath); 
+  });
+  
+  watcher.on('change', (filePath) => {
+    connection.console.log(`Arquivo modificado: ${filePath}`);
+    //processFile(filePath);
+    notifyClientToOpenFile(filePath); // Notifica o cliente para abrir o arquivo
+  });
 }
 
 // Escute por mensagens de inicialização
 connection.onInitialized(() => {
-  const directoryToWatch = path.resolve(__dirname, '../path_to_your_directory');
-  watchDirectory(directoryToWatch);
+  setTimeout(() => {
+    const directoryToWatch = path.resolve(__dirname, 'D:/Projetos/IMC/target/jaguar2.csv');
+    connection.console.log(`Atrasando o monitoramento do arquivo: ${directoryToWatch}`);
+    watchDirectory(directoryToWatch);
+  }, 10000); 
 });
+
 
 // Escute eventos do LSP
 documents.listen(connection);
