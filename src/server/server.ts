@@ -74,11 +74,9 @@ function watchDirectory(filePath: string): void {
 
 // Escute por mensagens de inicialização
 connection.onInitialized(() => {
-  setTimeout(() => {
-    const directoryToWatch = path.resolve(__dirname, 'D:/Projetos/IMC/target/jaguar2.csv');
-    connection.console.log(`Atrasando o monitoramento do arquivo: ${directoryToWatch}`);
-    watchDirectory(directoryToWatch);
-  }, 10000); 
+  const directoryToWatch = path.resolve(__dirname, 'D:/Projetos/IMC/target/jaguar2.csv');
+
+  watchDirectory(directoryToWatch);
 });
 
 

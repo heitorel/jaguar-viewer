@@ -49,10 +49,6 @@ export function activate(context: vscode.ExtensionContext) {
       console.log('Requisição custom/openFile recebida:', params);
       const uri = vscode.Uri.parse(params.uri);
 
-      // Normaliza o caminho do URI
-      const normalizedPath = uri.fsPath.endsWith('\\') ? uri.fsPath.slice(0, -1) : uri.fsPath;
-      const normalizedUri = vscode.Uri.file(normalizedPath);
-
       vscode.workspace.openTextDocument(params.uri).then((document) => {
         vscode.window.showTextDocument(document);
       });
