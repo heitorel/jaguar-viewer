@@ -74,9 +74,27 @@ function watchDirectory(filePath: string): void {
 
 // Escute por mensagens de inicialização
 connection.onInitialized(() => {
-  const directoryToWatch = path.resolve(__dirname, 'D:/Projetos/IMC/target/jaguar2.csv');
+  connection.workspace.getWorkspaceFolders().then((workspaceFolders) => {
+    if (workspaceFolders && workspaceFolders.length > 0) {
+      // Decodifica a URI, remove o prefixo 'file://', e remove uma barra inicial extra, se existir
+      const workspaceUri = workspaceFolders[0].uri;
+      let workspacePath = workspaceUri.startsWith('file://')
+        ? decodeURIComponent(workspaceUri.slice(7))
+        : decodeURIComponent(workspaceUri);
 
-  watchDirectory(directoryToWatch);
+      if (workspacePath.startsWith('/') || workspacePath.startsWith('\\')) {
+        workspacePath = workspacePath.slice(1);
+      }
+
+      const directoryToWatch = path.join(workspacePath, 'target', 'jaguar2.csv');
+      connection.console.log(`Monitorando o caminho dinâmico: ${directoryToWatch}`);
+      watchDirectory(directoryToWatch);
+    } else {
+      connection.console.error('Nenhum workspace ativo foi encontrado.');
+    }
+  }).catch((error) => {
+    connection.console.error(`Erro ao obter os workspaces: ${error.message}`);
+  });
 });
 
 
