@@ -4,13 +4,9 @@ import chokidar from 'chokidar';
 import fs from 'fs';
 import path from 'path';
 
-// Crie a conexão do LSP
 const connection = createConnection(ProposedFeatures.all);
-
-// Gerencia os documentos abertos pelo cliente
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
-// Inicialize o servidor LSP
 connection.onInitialize((params: InitializeParams) => {
   connection.console.log("Servidor LSP inicializado");
   return {
@@ -25,31 +21,63 @@ connection.onInitialize((params: InitializeParams) => {
   };
 });
 
-// Função para abrir e processar um arquivo
+// Função para processar o arquivo CSV e criar o arquivo log formatado
 function processFile(filePath: string): void {
+  const logPath = filePath.replace('.csv', '.log');
+  
   fs.readFile(filePath, 'utf8', (err, data) => {
     if (err) {
       connection.console.error(`Erro ao ler o arquivo: ${err.message}`);
       return;
     }
-    connection.console.log(`Arquivo atualizado: ${filePath}`);
-    connection.console.log('Conteúdo: ' + data);
+
+    const header = ['Ranking', 'Class', 'Line', 'CNF', 'CNP', 'CEF', 'CEP', 'Suspension'];
+    const lines = data.trim().split('\n').map(line => line.split(','));
+
+    // Adiciona a coluna de "Ranking" como índice
+    const rankedLines = lines.map((line, index) => [String(index + 1), ...line]);
+
+    // Calcula a largura máxima para cada coluna, incluindo o cabeçalho e as linhas de dados
+    const columnWidths = header.map((title, colIndex) => {
+      return Math.max(
+        title.length,
+        ...rankedLines.map(line => (line[colIndex] || '').length)
+      );
+    });
+
+    // Função auxiliar para formatar cada linha com espaçamento fixo entre colunas
+    const formatLine = (columns: string[], widths: number[]) => {
+      return columns.map((col, i) => (col || '').padEnd(widths[i])).join(' ');
+    };
+
+    // Formata o cabeçalho
+    const formattedHeader = formatLine(header, columnWidths);
+
+    // Formata as linhas de dados com base nas larguras calculadas
+    const formattedLines = rankedLines.map(line => formatLine(line, columnWidths));
+
+    // Junta o cabeçalho e as linhas formatadas sem linhas em branco entre elas
+    const logContent = [formattedHeader, ...formattedLines].join('\n');
+
+    // Escreve o conteúdo formatado no arquivo .log
+    fs.writeFile(logPath, logContent, (err) => {
+      if (err) {
+        connection.console.error(`Erro ao criar o arquivo .log: ${err.message}`);
+        return;
+      }
+
+      connection.console.log(`Arquivo log criado e atualizado: ${logPath}`);
+      notifyClientToOpenFile(logPath); // Notifica o cliente para abrir o arquivo .log
+    });
   });
 }
 
-// Notificar o cliente para abrir o arquivo
+// Notificar o cliente para abrir o arquivo .log
 function notifyClientToOpenFile(filePath: string): void {
-  // Verifica se o path é um arquivo
-  if (fs.lstatSync(filePath).isFile() && fs.existsSync(filePath)) {
-    const uriPath = filePath.endsWith('\\') ? filePath.slice(0, -1) : filePath; // Remove a barra se existir
-    connection.sendRequest('custom/openFile', { uri: filePath });
-  } else {
-    connection.console.error(`O caminho não é um arquivo: ${filePath}`);
-  }
+  connection.sendRequest('custom/openLogFile', { uri: filePath });
 }
 
-
-// Monitora o diretório passado como argumento
+// Monitora o diretório e aciona a função de processamento ao detectar modificações
 function watchDirectory(filePath: string): void {
   const watcher = chokidar.watch(filePath, { persistent: true });
 
@@ -61,22 +89,19 @@ function watchDirectory(filePath: string): void {
   
   watcher.on('add', (filePath: string) => {
     connection.console.log(`Arquivo criado: ${filePath}`);
-    //processFile(filePath);
-    notifyClientToOpenFile(filePath); 
+    processFile(filePath); 
   });
   
   watcher.on('change', (filePath: string) => {
     connection.console.log(`Arquivo modificado: ${filePath}`);
-    //processFile(filePath);
-    notifyClientToOpenFile(filePath); // Notifica o cliente para abrir o arquivo
+    processFile(filePath); // Processa e notifica para abrir o arquivo .log
   });
 }
 
-// Escute por mensagens de inicialização
+// Configuração para monitorar o diretório da workspace
 connection.onInitialized(() => {
   connection.workspace.getWorkspaceFolders().then((workspaceFolders) => {
     if (workspaceFolders && workspaceFolders.length > 0) {
-      // Decodifica a URI, remove o prefixo 'file://', e remove uma barra inicial extra, se existir
       const workspaceUri = workspaceFolders[0].uri;
       let workspacePath = workspaceUri.startsWith('file://')
         ? decodeURIComponent(workspaceUri.slice(7))
@@ -97,7 +122,5 @@ connection.onInitialized(() => {
   });
 });
 
-
-// Escute eventos do LSP
 documents.listen(connection);
 connection.listen();
