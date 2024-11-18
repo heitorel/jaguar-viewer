@@ -33,9 +33,10 @@ export function activate(context: vscode.ExtensionContext) {
 
   console.log('Iniciando o cliente LSP...');
 
-  client.start().then(() => {
+  client.start();
+  client.onReady().then(() => {
     console.log('Cliente LSP está pronto.');
-
+  
     // Manipulador da solicitação personalizada 'custom/openLogFile'
     client.onRequest('custom/openLogFile', async (params: { uri: string }) => {
       try {
@@ -47,7 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
         console.error(`Erro ao abrir o arquivo .log: ${params.uri}`, error);
       }
     });
-  }, (error) => {
+  }, (error: any) => {
     console.error('Erro ao iniciar o cliente LSP:', error);
   });
 
