@@ -6,7 +6,7 @@ This project is an extension for VS Code that makes it easier to view and naviga
 
 ## Preview
 
-<img src="img/preview.gif" width="100%" />
+<img src="jaguar-viewer/img/preview.gif" width="100%" />
 
 ## 📜 Relations
 
