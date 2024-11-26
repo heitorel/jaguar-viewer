@@ -28,4 +28,4 @@ Here are some projects related to the theme of this extension:
 - Heitor Bianchi
 - Marcos Chaim
 - Erickson Lima
-- Vanessa dos Anjos
+- Vanessa Oliveira
