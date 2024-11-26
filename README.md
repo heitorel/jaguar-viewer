@@ -18,8 +18,6 @@ Here are some projects related to the theme of this extension:
 
 ## ⚙️ Required components:
 
-- JDK 23
-- Maven 3.9.8
 - NPM 10.8.2
 - Node 20.18.0
 
